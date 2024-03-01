@@ -185,7 +185,7 @@ class QuickCreateSubscription extends tsc<IProps> {
   /** 发送配置 表单实例 */
   refOfSendingConfigurationForm = null;
 
-  isShowAdvancedOption = true;
+  isShowAdvancedOption = false;
   /** 展示同比 的 switcher */
   isShowYOY = true;
 
@@ -495,7 +495,10 @@ class QuickCreateSubscription extends tsc<IProps> {
     });
   }
 
-  /** 给 邮件标题 和 订阅名称 添加默认变量 */
+  /**
+   * 给 邮件标题 和 订阅名称 添加默认变量
+   * 以及从 url 中提取并赋值 展示同比 和 敏感度 。
+   */
   setDefaultValue() {
     const spaceList = this.$store.state.mySpaceList;
     const bizId = this.$store.state.bkBizId;
@@ -512,6 +515,16 @@ class QuickCreateSubscription extends tsc<IProps> {
     this.formData.content_config.title = targetName;
     this.formData.content_config__title = targetName;
     this.formData.name = `${targetTitle}-${this.$store.state.userMeta?.username || ''}`
+
+    const clusterRouteParams = JSON.parse(this.$route.query.clusterRouteParams || '{}');
+    this.pattenLevelSlider = PatternLevelEnum[clusterRouteParams?.requestData?.pattern_level || '09'];
+    this.handleSliderChange();
+    if (clusterRouteParams?.requestData?.year_on_year_hour) {
+      this.formData.scenario_config.year_on_year_hour = clusterRouteParams?.requestData?.year_on_year_hour;
+    } else {
+      this.isShowYOY = false;
+      this.formData.scenario_config.year_on_year_hour = 0;
+    }
   }
 
   /** 获取索引集 列表，需要取其中的 name */
@@ -692,6 +705,8 @@ class QuickCreateSubscription extends tsc<IProps> {
                   <bk-input
                     v-model={this.formData.scenario_config.log_display_count}
                     type='number'
+                    min={0}
+                    max={500}
                     style="width: 160px;"
                     onChange={() => {
                       this.formData.scenario_config__log_display_count =
@@ -1033,9 +1048,9 @@ class QuickCreateSubscription extends tsc<IProps> {
 
                       <div slot='content'>
                         {this.$t('获取会话ID方法')}: <br />
-                        {this.$t('1.群聊列表右键添加群机器人: BK-Monitor')}
+                        {this.$t('1.群聊列表右键添加群机器人: 蓝鲸监控上云')}
                         <br />
-                        {this.$t(`2.手动 @BK-Monitor 并输入关键字'会话ID'`)}
+                        {this.$t(`2.手动 @蓝鲸监控上云 并输入关键字'会话ID'`)}
                         <br />
                         {this.$t('3.将获取到的会话ID粘贴到输入框,使用逗号分隔')}
                       </div>
