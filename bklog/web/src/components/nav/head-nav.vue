@@ -157,20 +157,6 @@
           <li>
             <a
               href="javascript:;"
-              @click="handleGoToMyApplication">
-              {{ $t('我申请的') }}
-            </a>
-          </li>
-          <li>
-            <a
-              href="javascript:;"
-              @click="handleGoToMyReport">
-              {{ $t('我的订阅') }}
-            </a>
-          </li>
-          <li>
-            <a
-              href="javascript:;"
               @click="handleQuit">
               {{ $t('退出登录') }}
             </a>
@@ -178,10 +164,6 @@
         </ul>
       </bk-dropdown-menu>
     </div>
-
-    <GlobalDialog v-model='showGlobalDialog' :title='globalDialogTitle'>
-      <iframe :src='targetSrc' style='width: 100%;height: 100%;border: none;'></iframe>
-    </GlobalDialog>
   </nav>
 </template>
 
@@ -192,13 +174,11 @@ import LogVersion from './log-version';
 import { menuArr } from './complete-menu';
 import navMenuMixin from '@/mixins/nav-menu-mixin';
 import { jsonp } from '@/common/jsonp';
-import GlobalDialog from '@/components/global-dialog';
 
 export default {
   name: 'HeaderNav',
   components: {
     LogVersion,
-    GlobalDialog
   },
   mixins: [navMenuMixin],
   props: {},
@@ -216,9 +196,6 @@ export default {
       showLogVersion: false,
       language: 'zh-cn',
       languageList: [{ id: 'zh-cn', name: '中文' }, { id: 'en', name: 'English' }],
-      showGlobalDialog: false,
-      globalDialogTitle: '',
-      targetSrc: ''
     };
   },
   computed: {
@@ -452,30 +429,6 @@ export default {
       } else if (type === 'feedback') {
         window.open(window.BK_FAQ_URL);
       }
-    },
-    /** 前往 我申请的 */
-    handleGoToMyApplication() {
-      this.showGlobalDialog = false;
-      this.$nextTick(() => {
-        const bizId = this.$store.state.bkBizId;
-        // @ts-ignore
-        const targetSrc = `${window.MONITOR_URL}/?bizId=${bizId}&needMenu=false#/trace/report/my-applied-report`;
-        this.globalDialogTitle = this.$t('我申请的');
-        this.showGlobalDialog = true;
-        this.targetSrc = targetSrc;
-      });
-    },
-    /** 前往 我的订阅 */
-    handleGoToMyReport() {
-      this.showGlobalDialog = false;
-      this.$nextTick(() => {
-        const bizId = this.$store.state.bkBizId;
-        // @ts-ignore
-        const targetSrc = `${window.MONITOR_URL}/?bizId=${bizId}&needMenu=false#/trace/report/my-report`;
-        this.globalDialogTitle = this.$t('我的订阅');
-        this.showGlobalDialog = true;
-        this.targetSrc = targetSrc;
-      })
     },
     /** 退出登录 */
     handleQuit() {
