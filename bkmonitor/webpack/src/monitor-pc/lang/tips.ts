@@ -194,6 +194,13 @@ export default {
   '当前维度未选择目标IP与云区域ID，会导致监控目标选择无法生效':
     'The current dimension does not select the IP target and Cloud Region ID, which will cause the monitoring target selection to fail',
   存在关联的告警组: 'There is an associated alarm group',
+  '10分钟内无数据': 'No data within 10 minutes',
+  '直接进行 精准查询，定位到 Trace 详情': 'Directly perform precise queries and locate Trace details',
+  '可以切换到 范围查询，根据条件筛选 Trace': 'You can switch to range query, filter Trace according to conditions',
+  点击上传或将文件拖到此处: 'Click to upload or drag the file here',
+  '文件解析可能耗费较长时间，可先选择已解析文件查看':
+    'File parsing may take a long time, you can select the parsed file first to view',
+  请上传文件后查看: 'Please upload the file and view it after that',
   已选: 'selected',
   'tips-采集状态': 'Collection Status',
   '已成功发送 {0} 个内部用户': '{0} internal users successfully sent',
@@ -221,5 +228,9 @@ export default {
   企业微信群不可为空: 'Enterprise WeChat group cannot be empty',
   '是否发送给自己?': 'Send to yourself?',
   更新人: 'Updater',
-  更新时间: 'Update time'
+  更新时间: 'Update time',
+  '输入自定义小时，按 Enter 确认': 'Enter custom hours and press Enter to confirm',
+  '有效期内，订阅任务将正常发送；超出有效期，则任务失效，停止发送。':
+    'Within the validity period, the subscription task will be sent normally; beyond the validity period, the task will become invalid and the sending will stop.',
+  当前日志查询时间范围不支持静态区间: 'The current log query time range does not support static intervals.'
 };

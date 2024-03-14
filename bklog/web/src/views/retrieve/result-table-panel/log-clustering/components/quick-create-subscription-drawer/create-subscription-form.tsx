@@ -55,7 +55,8 @@ const YOYList = [
   }))
 ];
 const timeOptions = [
-  { id: 'none', label: '按发送频率', unit: '' },
+  // 20240308 暂时不需要该选项。
+  // { id: 'none', label: '按发送频率', unit: '' },
   { id: '5minutes', n: 5, unit: '分钟' },
   { id: '15minutes', n: 15, unit: '分钟' },
   { id: '30minutes', n: 30, unit: '分钟' },
@@ -158,11 +159,11 @@ class QuickCreateSubscription extends tsc<IProps> {
     day_list: [],
   };
 
-  /** 敏感度 选择器 */
+  /** Pattern 选择器 */
   pattenLevelSlider = 0;
 
-  /** 有效时间范围 相关 */
-  dataRange = 'none';
+  /** 任务有效期 相关 */
+  dataRange = '5minutes';
 
   /** 订阅人 项相关变量。这里会监听该变量变化动态修改 formData 中 channels 。 */
   subscriberInput = {
@@ -223,6 +224,16 @@ class QuickCreateSubscription extends tsc<IProps> {
   /** 当前页 业务名 */
   bizName = '';
 
+  emailRegex = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|.(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+
+  customHourInput = '';
+
+  /** 任务有效期，视图绑定用。 */
+  timerange = {
+    start: '',
+    end: ''
+  };
+
   /** 表单验证规则，因为这里需要大量引用 this 指向本组件，所以要使用函数去返回配置对象 */
   formDataRules() {
     return {
@@ -239,7 +250,7 @@ class QuickCreateSubscription extends tsc<IProps> {
             }
           },
           message: this.$t('必填项'),
-          trigger: 'blur',
+          trigger: 'change',
         },
       ],
       channels: [
@@ -276,7 +287,7 @@ class QuickCreateSubscription extends tsc<IProps> {
                     const result = String(subscriber.id || '')
                       .toLowerCase()
                       .match(
-                        /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|.(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
+                        this.emailRegex
                       );
                     if (!result) {
                       isInvalid = true;
@@ -323,11 +334,22 @@ class QuickCreateSubscription extends tsc<IProps> {
       timerange: [
         {
           validator: () => {
-            return this.formData.timerange.length >= 2 && this.formData.timerange.every(item => item);
+            return this.formData.timerange.length === 2 && !!this.formData.timerange[0];
           },
-          message: this.$t('必填项'),
-          trigger: 'change',
+          message: this.$t('生效起始时间必填'),
+          trigger: 'change'
         },
+        {
+          validator: () => {
+            const [start, end] = this.formData.timerange;
+            // end 为空串时说明是无期限。不需要再做后续计算。
+            if (!end) return true;
+            const result = dayjs(start).diff(end);
+            return result < 0;
+          },
+          message: this.$t('生效结束时间不能小于生效起始时间'),
+          trigger: 'change'
+        }
       ],
       name: [
         {
@@ -407,15 +429,12 @@ class QuickCreateSubscription extends tsc<IProps> {
     }
   }
 
-  /** 有效时间范围 调整时间格式 */
+  /** 任务有效期 调整时间格式 */
   handleTimeRangeChange(v) {
-    if (v.filter(item => !!item).length < 2) {
-      this.formData.timerange = [];
-      return;
-    }
     this.formData.timerange = deepClone(v);
     const result = v.map(date => {
-      return dayjs(date).unix();
+      // 结束时间可能是空串（代表 无期限），这里用 undefined 代替，即不需要提交。
+      return date ? dayjs(date).unix() : undefined;
     });
     // eslint-disable-next-line @typescript-eslint/naming-convention
     const [start_time, end_time] = result;
@@ -459,7 +478,36 @@ class QuickCreateSubscription extends tsc<IProps> {
       cloneFormData.bk_biz_id = Number(this.$route.query.bizId || 0);
       cloneFormData.scenario_config.index_set_id = Number(this.indexSetId || 0);
       return cloneFormData;
-    });
+    })
+    .catch((error) => {
+      // 表单验证失败后，聚焦到对应的元素。
+      const property = error.field;
+      // 订阅内容 表单若有某个内容验证有误将尽可能的聚焦到该元素上。
+      this.refOfContentForm?.formItems?.find(item => item.property === property)?.$children?.find?.(item => item.focus)?.focus?.()
+      // 邮件配置 表单若有某个内容验证有误将尽可能的聚焦到该元素上。
+      this.refOfEmailSubscription?.formItems?.find(item => item.property === property)?.$children?.find?.(item => item.focus)?.focus?.()
+      if (property !== 'channels') {
+        this.refOfSendingConfigurationForm?.formItems?.find(item => item.property === property)?.$children?.find?.(item => item.focus)?.focus?.()
+      } else {
+        if (this.formData.subscriber_type === 'others') {
+          const targetChannel = this.formData.channels.find(
+            item =>
+              item.is_enabled &&
+              (item.channel_name !== 'email'
+                ? !item.subscribers.length
+                : // 检查订阅邮箱格式是否正确。
+                  !item.subscribers.every(email => String(email.id).toLowerCase().match(this.emailRegex)) ||
+                  !item.subscribers.length)
+          )?.channel_name;
+          if (targetChannel) this.$refs?.[`${targetChannel}-input`]?.focus?.();
+          else {
+            // 如果订阅人未选择任何类型，应该把焦点定位在 订阅人 一栏
+            document.querySelector('#subscriptor-item')?.focus?.();
+          }
+        }
+      }
+      return Promise.reject(error);
+    })
   }
 
   /**
@@ -497,7 +545,7 @@ class QuickCreateSubscription extends tsc<IProps> {
 
   /**
    * 给 邮件标题 和 订阅名称 添加默认变量
-   * 以及从 url 中提取并赋值 展示同比 和 敏感度 。
+   * 以及从 url 中提取并赋值 展示同比 和 Pattern 。
    */
   setDefaultValue() {
     const spaceList = this.$store.state.mySpaceList;
@@ -549,6 +597,16 @@ class QuickCreateSubscription extends tsc<IProps> {
       .then(response => {
         this.variableTable.data = response.data;
       })
+  }
+
+  /** 取消按钮文本设置为永久 */
+  handleDatePickerOpen(state: boolean) {
+    if (state) {
+      // @ts-ignore
+      const ele = this.$refs['effectiveEndRef'].$el.querySelector('.bk-picker-confirm a:nth-child(2)');
+      ele.innerText = this.$t('永久');
+      ele.setAttribute('class', 'confirm');
+    }
   }
 
   @Watch('dataRange', { immediate: true})
@@ -636,13 +694,13 @@ class QuickCreateSubscription extends tsc<IProps> {
                 text
                 theme='primary'
                 onClick={() => (this.isShowAdvancedOption = !this.isShowAdvancedOption)}
-                style="margin-left: 120px; margin-bottom: 10px; margin-top: 20px;"
+                style="margin-left: 120px; margin-bottom: 10px; margin-top: 20px;font-size: 12px;"
               >
                 <div style="display: flex; align-items: center;">
                   {this.mode === 'create' && this.$t('内容配置')}
                   <i
-                    class={['icon-monitor', this.isShowAdvancedOption ? 'log-icon icon-zhankai' : 'log-icon icon-zhedie']}
-                    style="font-size: 16px;"
+                    class={['icon-monitor', this.isShowAdvancedOption ? 'log-icon icon-expand-small' : 'log-icon icon-collapse-small']}
+                    style="font-size: 26px;"
                   ></i>
                 </div>
               </bk-button>
@@ -672,12 +730,19 @@ class QuickCreateSubscription extends tsc<IProps> {
                           );
                         })}
                       </bk-select>
+                      <div style='margin-top: 8px;width: 100%;'>
+                        <bk-alert
+                          type='warning'
+                          style='width: 465px;'
+                          title={this.$t('当前日志查询时间范围不支持静态区间')}
+                        ></bk-alert>
+                      </div>
                     </bk-form-item>
                   </div>
                 )}
 
                 <bk-form-item
-                  label={this.$t('敏感度')}
+                  label='Pattern'
                   property='scenario_config.pattern_level'
                   required
                   style="margin-top: 20px;"
@@ -827,7 +892,7 @@ class QuickCreateSubscription extends tsc<IProps> {
                     <bk-button
                       text
                       theme='primary'
-                      style="margin-left: 16px;"
+                      style="margin-left: 16px;font-size: 12px;"
                     >
                       <i
                         class='icon-monitor icon-mc-detail'
@@ -844,6 +909,7 @@ class QuickCreateSubscription extends tsc<IProps> {
                         <bk-table-column
                           label={this.$t('变量名')}
                           prop='variable'
+                          width='160px'
                           scopedSlots={{
                             default: ({ row }) => {
                               return (
@@ -863,10 +929,12 @@ class QuickCreateSubscription extends tsc<IProps> {
                         ></bk-table-column>
                         <bk-table-column
                           label={this.$t('变量说明')}
+                          width='90px'
                           prop='description'
                         ></bk-table-column>
                         <bk-table-column
                           label={this.$t('示例')}
+                          width='160px'
                           prop='example'
                         ></bk-table-column>
                       </bk-table>
@@ -920,6 +988,8 @@ class QuickCreateSubscription extends tsc<IProps> {
 
             {/* 需要自定义校验规则 */}
             <bk-form-item
+              id='subscriptor-item'
+              tabindex='1'
               label={this.$t('订阅人')}
               property='channels'
               required
@@ -952,6 +1022,7 @@ class QuickCreateSubscription extends tsc<IProps> {
                   <br />
                   <div data-is-show-error-msg={String(this.errorTips.user.isShow)}>
                     <bk-user-selector
+                      ref='user-input'
                       v-model={this.subscriberInput.user}
                       api={window.BK_LOGIN_URL}
                       placeholder={this.$t('选择通知对象')}
@@ -995,6 +1066,7 @@ class QuickCreateSubscription extends tsc<IProps> {
                     >
                       <div data-is-show-error-msg={String(this.errorTips.email.isShow)}>
                         <bk-input
+                          ref='email-input'
                           v-model={this.subscriberInput.email}
                           disabled={!this.formData.channels[1].is_enabled}
                           style="width: 465px;"
@@ -1037,6 +1109,7 @@ class QuickCreateSubscription extends tsc<IProps> {
                       theme='light'
                     >
                       <bk-input
+                        ref='wxbot-input'
                         v-model={this.subscriberInput.wxbot}
                         disabled={!this.formData.channels[2].is_enabled}
                         style="width: 465px;"
@@ -1067,6 +1140,7 @@ class QuickCreateSubscription extends tsc<IProps> {
               property='frequency'
               required
               error-display-type='normal'
+              class='no-relative'
             >
               <bk-radio-group v-model={this.formData.frequency.type}>
                 <bk-radio label={FrequencyType.hourly}>{this.$t('按小时')}</bk-radio>
@@ -1078,9 +1152,16 @@ class QuickCreateSubscription extends tsc<IProps> {
 
               {this.formData.frequency.type === FrequencyType.hourly && (
                 <bk-select
+                  ref='refOfFrequencyHour'
                   v-model={this.frequency.hour}
                   clearable={false}
                   style="width: 240px;"
+                  onToggle={() => {
+                    // 强行将 input 的type设置为number（组件库不允许直接设置）将操作逻辑改成和监控一样。
+                    const targetEle = document.querySelector('#customHourInput input');
+                    console.log(targetEle);
+                    targetEle.attributes['type'].value = 'number';
+                  }}
                 >
                   {hourOption.map(item => {
                     return (
@@ -1090,6 +1171,51 @@ class QuickCreateSubscription extends tsc<IProps> {
                       ></bk-option>
                     );
                   })}
+                  <div slot='extension' style='padding: 10px 0;'>
+                    <bk-input
+                      id='customHourInput'
+                      v-model={this.customHourInput}
+                      type='number'
+                      size='small'
+                      placeholder={this.$t('输入自定义小时，按 Enter 确认')}
+                      min={1}
+                      max={24}
+                      precision={0}
+                      // @ts-ignore 只允许输入正整数
+                      oninput={() => {
+                        this.customHourInput = this.customHourInput.replace(/^(0+)|[^\d]+/g,'');
+                      }}
+                      onEnter={() => {
+                        // 添加自定义 发送频率 ，如果输入有重复要直接选中。
+                        let inputNumber = Number(this.customHourInput);
+                        if (!inputNumber) {
+                          // @ts-ignore
+                          return this.$bkMessage({
+                            theme: 'warning',
+                            message: this.$t('请输入有效数值')
+                          });
+                        }
+                        const minNum = 0.5;
+                        const maxNum = 24;
+                        if (inputNumber > maxNum) {
+                          inputNumber = maxNum;
+                          this.customHourInput = String(inputNumber);
+                        }
+                        if (inputNumber < minNum) {
+                          inputNumber = minNum;
+                          this.customHourInput = String(inputNumber);
+                        }
+                        const isHasDuplicatedNum = hourOption.find(item => item.id === inputNumber);
+                        if (!isHasDuplicatedNum) {
+                          hourOption.push({ id: inputNumber, name: this.$t('{0}小时', [inputNumber]) });
+                        }
+                        this.frequency.hour = inputNumber;
+                        this.customHourInput = '';
+                        // @ts-ignore
+                        this.$refs['refOfFrequencyHour']?.close?.();
+                      }}
+                    ></bk-input>
+                  </div>
                 </bk-select>
               )}
 
@@ -1164,18 +1290,44 @@ class QuickCreateSubscription extends tsc<IProps> {
 
             {this.formData.frequency.type !== FrequencyType.onlyOnce && (
               <bk-form-item
-                label={this.$t('有效时间范围')}
+                label={this.$t('任务有效期')}
                 property='timerange'
                 required
                 error-display-type='normal'
+                class='no-relative'
+                desc={this.$t('有效期内，订阅任务将正常发送；超出有效期，则任务失效，停止发送。')}
               >
-                <bk-date-picker
+                {/* <bk-date-picker
                   v-model={this.formData.timerange}
                   type='datetimerange'
                   format={'yyyy-MM-dd HH:mm:ss'}
                   clearable={false}
                   style='width: 465px;'
                   onChange={this.handleTimeRangeChange}
+                ></bk-date-picker> */}
+                <bk-date-picker
+                  v-model={this.timerange.start}
+                  type='datetime'
+                  placeholder={`${this.$t('如')}: 2019-01-30 12:12:21`}
+                  clearable={false}
+                  style='width: 220px;'
+                  onChange={v => {
+                    this.handleTimeRangeChange([this.timerange.start, this.timerange.end]);
+                  }}
+                ></bk-date-picker>
+                <span style='padding: 0 10px;'>-</span>
+                <bk-date-picker
+                  v-model={this.timerange.end}
+                  ref='effectiveEndRef'
+                  class='effective-end'
+                  clearable
+                  type='datetime'
+                  placeholder={this.$t('永久')}
+                  style='width: 220px;'
+                  onChange={v => {
+                    this.handleTimeRangeChange([this.timerange.start, this.timerange.end]);
+                  }}
+                  onOpen-change={this.handleDatePickerOpen}
                 ></bk-date-picker>
               </bk-form-item>
             )}

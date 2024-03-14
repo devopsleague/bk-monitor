@@ -122,6 +122,7 @@ export default {
   设计值班时间: 'Design Duty Time',
   设置轮值规则: 'Set Rotation Rules',
   添加轮值人员: 'Add Rotation Members',
+  对比项: 'Comparative Item',
   告警: 'Alarm',
   关注人: 'Follower',
 
@@ -139,9 +140,9 @@ export default {
   发送成功: 'Send Success',
   发送部分失败: 'Send Partially Failed',
   发送失败: 'Send Failed',
-  有效时间范围: 'Effective Time Range',
   发送结果: 'Send Result',
   通知渠道: 'Notification Channel',
   接收人: 'Recipient',
-  变量说明: 'Variable Description'
+  变量说明: 'Variable Description',
+  任务有效期: 'Task validity period'
 };

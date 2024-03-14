@@ -589,6 +589,10 @@ export default {
   责任人: 'Responsible',
   索引字段: 'Index Set Fields',
   'label-内置字段': 'Built-in Fields',
+  维度: 'Dimension',
+  已备注: 'Already Noted',
+  未备注: 'No Remarks',
+  未指定责任人: 'No responsible person specified',
   订阅场景: 'Subscription scenario',
   敏感度: 'Sensitivity',
   最大展示数量: 'Maximum number of impressions',
@@ -597,6 +601,8 @@ export default {
   邮件标题: 'Mail title',
   订阅人: 'Subscriber',
   发送频率: 'Send frequency',
-  有效时间范围: 'Valid time range',
-  只展示新类: 'Only show new classes'
+  只展示新类: 'Only show new classes',
+  任务有效期: 'Task validity period',
+  '有效期内，订阅任务将正常发送；超出有效期，则任务失效，停止发送。': 'Within the validity period, the subscription task will be sent normally; beyond the validity period, the task will become invalid and the sending will stop.',
+  '输入自定义小时，按 Enter 确认': 'Enter custom hours and press Enter to confirm'
 };
