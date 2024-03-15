@@ -170,6 +170,11 @@ const ArchiveRestore = () => import(
   /* webpackChunkName: 'sdk-track' */
   '@/views/manage/log-archive/archive-restore/list'
 );
+// ---- 日志归档 ---- 订阅管理
+const ReportManage = () => import(
+  /* webpackChunkName: 'report-manage' */
+  '@/views/manage/report-management'
+);
 // ---- 日志提取 ---- 提取配置
 const ExtractPermission = () => import(
   /* webpackChunkName: 'manage-extract-permission' */
@@ -1000,7 +1005,7 @@ const routes = [
       {
         path: 'report-manage',
         name: 'report-manage', // 订阅 - 订阅管理
-        component: ReportManagement,
+        component: ReportManage,
         meta: {
           title: '订阅管理',
           navId: 'report-manage',
