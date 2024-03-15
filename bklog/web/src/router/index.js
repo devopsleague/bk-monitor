@@ -997,6 +997,15 @@ const routes = [
           navId: 'manage-data-link-conf',
         },
       },
+      {
+        path: 'report-manage',
+        name: 'report-manage', // 订阅 - 订阅管理
+        component: ReportManagement,
+        meta: {
+          title: '订阅管理',
+          navId: 'report-manage',
+        },
+      },
     ],
   },
   // {
