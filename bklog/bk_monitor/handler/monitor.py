@@ -209,7 +209,7 @@ class CustomReporter(object):
                     f" cost: {int(time.time() - stime)}s"
                 )
             except Exception as e:
-                logger.error(
+                print(
                     f"[statistics_data] report metric_id[{metric_id}] failed,"
                     f" cost: {int(time.time() - stime)}s, msg: {e}"
                 )
