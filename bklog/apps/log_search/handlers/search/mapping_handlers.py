@@ -408,8 +408,8 @@ class MappingHandlers(object):
             start_time = arrow.get(self.start_time, tzinfo=self.time_zone)
             end_time = arrow.get(self.end_time, tzinfo=self.time_zone)
 
-        start_time_format = start_time.floor('hour').strftime("%Y-%m-%d %H:%M:%S")
-        end_time_format = end_time.ceil('hour').strftime("%Y-%m-%d %H:%M:%S")
+        start_time_format = start_time.floor("hour").strftime("%Y-%m-%d %H:%M:%S")
+        end_time_format = end_time.ceil("hour").strftime("%Y-%m-%d %H:%M:%S")
 
         return self._get_latest_mapping(index_set_id=self.index_set_id,
                                         start_time=start_time_format, end_time=end_time_format)
